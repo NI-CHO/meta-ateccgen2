@@ -5,17 +5,9 @@ Subject: [PATCH] hwmon: add support for SMSC EMC2303
 
 Signed-off-by: wkoe <wilson.koe@ni.com>
 ---
- .../devicetree/bindings/hwmon/emc2303.txt          |  30 +
- drivers/hwmon/Kconfig                              |  10 +
- drivers/hwmon/Makefile                             |   1 +
- drivers/hwmon/emc2303.c                            | 711 +++++++++++++++++++++
- 4 files changed, 752 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/hwmon/emc2303.txt
- create mode 100644 drivers/hwmon/emc2303.c
-
 diff --git a/Documentation/devicetree/bindings/hwmon/emc2303.txt b/Documentation/devicetree/bindings/hwmon/emc2303.txt
 new file mode 100644
-index 00000000..7fcd9f9
+index 000000000..7fcd9f93a
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/hwmon/emc2303.txt
 @@ -0,0 +1,30 @@
@@ -50,10 +42,10 @@ index 00000000..7fcd9f9
 +        #size-cells = <0>;
 +    }
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
-index 2fa4666..1b705a1 100644
+index e2531a92e..2c4a70934 100644
 --- a/drivers/hwmon/Kconfig
 +++ b/drivers/hwmon/Kconfig
-@@ -1457,6 +1457,16 @@ config SENSORS_EMC2103
+@@ -1863,6 +1863,16 @@ config SENSORS_EMC2103
  	  This driver can also be built as a module. If so, the module
  	  will be called emc2103.
  
@@ -67,24 +59,24 @@ index 2fa4666..1b705a1 100644
 +	  This driver can also be built as a module.  If so, the module
 +	  will be called emc2303.
 +
- config SENSORS_EMC6W201
- 	tristate "SMSC EMC6W201"
+ config SENSORS_EMC2305
+ 	tristate "Microchip EMC2305 and compatible EMC2301/2/3"
  	depends on I2C
 diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
-index b033e67..611c9c8 100644
+index ae57d8dad..79b9f9f9e 100644
 --- a/drivers/hwmon/Makefile
 +++ b/drivers/hwmon/Makefile
-@@ -60,6 +60,7 @@ obj-$(CONFIG_SENSORS_DS620)	+= ds620.o
+@@ -70,6 +70,7 @@ obj-$(CONFIG_SENSORS_DS620)	+= ds620.o
  obj-$(CONFIG_SENSORS_DS1621)	+= ds1621.o
  obj-$(CONFIG_SENSORS_EMC1403)	+= emc1403.o
  obj-$(CONFIG_SENSORS_EMC2103)	+= emc2103.o
 +obj-$(CONFIG_SENSORS_EMC2303)	+= emc2303.o
+ obj-$(CONFIG_SENSORS_EMC2305)	+= emc2305.o
  obj-$(CONFIG_SENSORS_EMC6W201)	+= emc6w201.o
  obj-$(CONFIG_SENSORS_F71805F)	+= f71805f.o
- obj-$(CONFIG_SENSORS_F71882FG)	+= f71882fg.o
 diff --git a/drivers/hwmon/emc2303.c b/drivers/hwmon/emc2303.c
 new file mode 100644
-index 00000000..b2ae311
+index 000000000..2f1490d71
 --- /dev/null
 +++ b/drivers/hwmon/emc2303.c
 @@ -0,0 +1,711 @@
@@ -697,7 +689,7 @@ index 00000000..b2ae311
 + * driver interface
 + */
 +static int
-+emc2303_probe(struct i2c_client *client, const struct i2c_device_id *id)
++emc2303_probe(struct i2c_client *client)
 +{
 +	struct emc2303_data *data;
 +	struct device *hwmon_dev;
@@ -777,7 +769,7 @@ index 00000000..b2ae311
 +	product = i2c_smbus_read_byte_data(new_client, REG_PRODUCT_ID);
 +
 +	if (product == 0x35)
-+		strlcpy(info->type, "emc2303", I2C_NAME_SIZE);
++		strscpy(info->type, "emc2303", I2C_NAME_SIZE);
 +	else
 +		return -ENODEV;
 +
